@@ -20,7 +20,7 @@ def search_pdfs(args):
     compiled_regex = re.compile(args.regex_pattern)
     matches_found = False
     
-    pdf_files = get_pdf_files(args.folder_path, args.include, args.ignore, args.include_mode, args.ignore_mode)
+    pdf_files = get_pdf_files(args.folder_path, args.include, args.ignore)
     total_files = len(pdf_files)
     
     print("Arguments used for the search:")

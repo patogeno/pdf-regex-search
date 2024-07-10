@@ -43,8 +43,6 @@ python main.py [folder_path] [regex_pattern] [options]
 
 - `-inc`, `--include`: Regex patterns to include in filenames
 - `-i`, `--ignore`: Regex patterns to ignore in filenames
-- `--include-mode`: Mode for include patterns (choices: "beginswith", "full"; default: "full")
-- `--ignore-mode`: Mode for ignore patterns (choices: "beginswith", "full"; default: "full")
 - `-v`, `--verbose`: Enable verbose output
 - `-p`, `--use-previous`: Use arguments from the previous run
 - `-f`, `--use-favorite`: Use a saved favorite configuration
@@ -54,12 +52,12 @@ python main.py [folder_path] [regex_pattern] [options]
 
 1. Search for the word "confidential" in all PDFs in a folder, ignoring files with "draft" or "old" in their names:
    ```
-   python main.py /path/to/pdfs "confidential" -i "draft|old" --ignore-mode full
+   python main.py /path/to/pdfs "confidential" -i "draft|old"
    ```
 
 2. Search for a Social Security Number pattern in PDFs that begin with "report", using verbose output:
    ```
-   python main.py /home/user/documents "\d{3}-\d{2}-\d{4}" -inc "^report" --include-mode beginswith -v
+   python main.py /home/user/documents "\d{3}-\d{2}-\d{4}" -inc "^report" -v
    ```
 
 3. Use a previously saved configuration:
