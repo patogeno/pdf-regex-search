@@ -5,6 +5,52 @@ import argparse
 import sys
 import time
 from datetime import datetime
+import json
+
+CONFIG_FILE = 'pdf_search_config.json'
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    return {'last_args': {}, 'favorites': {}}
+
+def save_config(config):
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=2)
+
+def save_last_args(args):
+    config = load_config()
+    args_dict = vars(args)
+    # Exclude certain arguments from being saved
+    exclude_args = ['use_previous', 'use_favorite', 'save_favorite']
+    config['last_args'] = {k: v for k, v in args_dict.items() if k not in exclude_args and v is not None}
+    save_config(config)
+
+def load_args(args, use_previous, use_favorite):
+    config = load_config()
+    if use_previous:
+        loaded_args = config.get('last_args', {})
+    elif use_favorite:
+        loaded_args = config.get('favorites', {}).get(use_favorite, {})
+    else:
+        return args
+
+    # Update args with loaded values, but don't override explicitly provided args
+    for key, value in loaded_args.items():
+        if getattr(args, key) is None or (isinstance(getattr(args, key), list) and not getattr(args, key)):
+            setattr(args, key, value)
+    
+    return args
+
+def save_favorite(name, args):
+    config = load_config()
+    args_dict = vars(args)
+    # Exclude certain arguments from being saved
+    exclude_args = ['use_previous', 'use_favorite', 'save_favorite']
+    config['favorites'][name] = {k: v for k, v in args_dict.items() if k not in exclude_args and v is not None}
+    save_config(config)
+    print(f"Saved current arguments as favorite '{name}'")
 
 def match_pattern(filepath, patterns, mode):
     filename = os.path.basename(filepath)
@@ -35,23 +81,37 @@ def update_progress(current, total):
     sys.stdout.write(f'\rProgress: |{bar}| {percent}% Complete')
     sys.stdout.flush()
 
-def create_log_file(pdf_files):
+def create_log_file(pdf_files, args):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_filename = f"pdf_search_log_{timestamp}.txt"
     with open(log_filename, 'w') as log_file:
-        log_file.write("PDF files to be searched:\n")
+        log_file.write("Arguments used for the search:\n")
+        for key, value in vars(args).items():
+            if value is not None and value != []:
+                log_file.write(f"{key}: {value}\n")
+        log_file.write("\nPDF files to be searched:\n")
         for file in pdf_files:
             log_file.write(f"{file}\n")
     return log_filename
 
-def search_pdfs(folder_path, regex_pattern, include_patterns, ignore_patterns, include_mode, ignore_mode, verbose):
-    compiled_regex = re.compile(regex_pattern)
+def search_pdfs(args):
+    if not args.folder_path or not args.regex_pattern:
+        print("Error: Both folder_path and regex_pattern are required for the search.")
+        return
+
+    compiled_regex = re.compile(args.regex_pattern)
     matches_found = False
     
-    pdf_files = get_pdf_files(folder_path, include_patterns, ignore_patterns, include_mode, ignore_mode)
+    pdf_files = get_pdf_files(args.folder_path, args.include, args.ignore, args.include_mode, args.ignore_mode)
     total_files = len(pdf_files)
     
-    log_filename = create_log_file(pdf_files)
+    print("Arguments used for the search:")
+    for key, value in vars(args).items():
+        if value is not None and value != []:
+            print(f"{key}: {value}")
+    print()
+
+    log_filename = create_log_file(pdf_files, args)
     print(f"Found {total_files} PDF files to search.")
     print(f"Log file created: {log_filename}")
     
@@ -77,18 +137,18 @@ def search_pdfs(folder_path, regex_pattern, include_patterns, ignore_patterns, i
                 for j, match in enumerate(file_matches, 1):
                     print(f"{j}. {match}")
                 print()  # Empty line for readability
-            elif verbose:
+            elif args.verbose:
                 print(f"\nNo matches found in {full_path}")
                 print()  # Empty line for readability
         except Exception as e:
-            if verbose:
+            if args.verbose:
                 print(f"\nError processing {full_path}: {str(e)}")
                 print()  # Empty line for readability
         
         update_progress(i, total_files)
     
     print()  # Move to a new line after the progress bar
-    if not matches_found and verbose:
+    if not matches_found and args.verbose:
         print("No matches found in any files.")
 
 def main():
@@ -106,8 +166,8 @@ Examples:
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("folder_path", help="Path to the folder containing PDFs")
-    parser.add_argument("regex_pattern", help="Regex pattern to search for")
+    parser.add_argument("folder_path", nargs='?', help="Path to the folder containing PDFs")
+    parser.add_argument("regex_pattern", nargs='?', help="Regex pattern to search for")
     parser.add_argument("--include", nargs="*", default=[], help="Patterns to include in filenames")
     parser.add_argument("--ignore", nargs="*", default=[], help="Patterns to ignore in filenames")
     parser.add_argument("--include-mode", choices=["beginswith", "contains"], default="contains",
@@ -115,16 +175,28 @@ Examples:
     parser.add_argument("--ignore-mode", choices=["beginswith", "contains"], default="contains",
                         help="Mode for ignore patterns (default: contains)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--use-previous", action="store_true", help="Use arguments from the previous run")
+    parser.add_argument("--use-favorite", help="Use a saved favorite configuration")
+    parser.add_argument("--save-favorite", help="Save current arguments as a favorite configuration")
     
-    # If no arguments are provided, print help and exit
-    if len(sys.argv) == 1:
+    args = parser.parse_args()
+    
+    # Load previous or favorite args if requested
+    args = load_args(args, args.use_previous, args.use_favorite)
+    
+    # Save as favorite if requested
+    if args.save_favorite:
+        save_favorite(args.save_favorite, args)
+    
+    # Save current args as last used
+    save_last_args(args)
+    
+    # If no arguments are provided and not using previous/favorite, print help and exit
+    if not args.folder_path and not args.regex_pattern and not args.use_previous and not args.use_favorite:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    args = parser.parse_args()
-    
-    search_pdfs(args.folder_path, args.regex_pattern, args.include, args.ignore, 
-                args.include_mode, args.ignore_mode, args.verbose)
+    search_pdfs(args)
 
 if __name__ == "__main__":
     main()
