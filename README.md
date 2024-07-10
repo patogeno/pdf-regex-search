@@ -10,7 +10,7 @@ PDF Regex Search is a command-line tool that allows you to search for regex patt
 - Save and load search configurations
 - Verbose output option for detailed search results
 - Progress bar to track search progress
-- Comprehensive logging with hourly log rotation
+- Dual logging system with detailed hourly logs and a summary of the latest search
 
 ## Installation
 
@@ -81,7 +81,23 @@ Note: All regex patterns (for content search, file inclusion, and file exclusion
 
 ## Logs
 
-Logs are stored in the same directory as the script, with filenames in the format `pdf_search_log_YYYYMMDD_HH.txt`. Logs are grouped by hour and include timestamps for each entry.
+The application maintains two types of log files:
+
+1. Detailed Hourly Logs:
+   - Filename format: `pdf_search_log_YYYYMMDD_HH.txt`
+   - Contains comprehensive information about each search, including all file paths and timestamped entries
+   - Logs are grouped by hour and appended to if multiple searches are performed in the same hour
+
+2. Summary Log:
+   - Filename: `pdf_search_latest.log`
+   - Contains a summary of the most recent search, including:
+     - Timestamp of the search
+     - Arguments used for the search
+     - Total number of PDF files found
+     - Search results (matches found in files)
+   - This log is overwritten with each new search, always containing the latest results
+
+Both log files are stored in the same directory as the script.
 
 ## Contributing
 

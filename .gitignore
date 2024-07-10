@@ -3,6 +3,7 @@ pdf_search_config.json
 
 # Ignore all log files
 pdf_search_log_*.txt
+*.log
 
 # Python-related files
 __pycache__/

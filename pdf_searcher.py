@@ -1,7 +1,7 @@
 import re
 from PyPDF2 import PdfReader
 from file_utils import get_pdf_files
-from logger import create_or_append_log_file, append_to_log
+from logger import create_detailed_log_file, append_to_detailed_log, create_summary_log, append_to_summary_log, finalize_logs
 import sys
 
 def update_progress(current, total):
@@ -30,18 +30,21 @@ def search_pdfs(args):
             print(f"{key}: {value}")
     print()
 
-    log_filename = create_or_append_log_file(args, pdf_files)
+    detailed_log_filename = create_detailed_log_file(args, pdf_files)
+    create_summary_log(args, total_files)
     print(f"Found {total_files} PDF files to search.")
-    print(f"Log file: {log_filename}")
+    print(f"Detailed log file: {detailed_log_filename}")
+    print(f"Summary log file: pdf_search_latest.log")
     
     user_input = input("Do you want to continue with the search? (y/n): ").strip().lower()
     if user_input != 'y':
         print("Search cancelled by user.")
-        append_to_log(log_filename, "Search cancelled by user before processing files.\n")
+        append_to_detailed_log(detailed_log_filename, "Search cancelled by user before processing files.\n")
+        append_to_summary_log("Search cancelled by user before processing files.\n")
         return
     
     print("Starting search...")
-    append_to_log(log_filename, "Starting search...\n")
+    append_to_detailed_log(detailed_log_filename, "Starting search...\n")
     
     for i, full_path in enumerate(pdf_files, 1):
         try:
@@ -59,21 +62,23 @@ def search_pdfs(args):
                     result += f"{j}. {match}\n"
                 result += "\n"
                 print(result)
-                append_to_log(log_filename, result)
+                append_to_detailed_log(detailed_log_filename, result)
+                append_to_summary_log(result)
             elif args.verbose:
                 result = f"No matches found in {full_path}\n"
                 print(result)
-                append_to_log(log_filename, result)
+                append_to_detailed_log(detailed_log_filename, result)
+                append_to_summary_log(result)
         except Exception as e:
             if args.verbose:
                 error_msg = f"Error processing {full_path}: {str(e)}\n"
                 print(error_msg)
-                append_to_log(log_filename, error_msg)
+                append_to_detailed_log(detailed_log_filename, error_msg)
+                append_to_summary_log(error_msg)
         
         update_progress(i, total_files)
     
     print()  # Move to a new line after the progress bar
+    finalize_logs(detailed_log_filename, matches_found)
     if not matches_found:
-        no_matches_msg = "No matches found in any files.\n"
-        print(no_matches_msg)
-        append_to_log(log_filename, no_matches_msg)
+        print("No matches found in any files.")
