@@ -17,10 +17,11 @@ def search_pdfs(args):
         print("Error: Both folder_path and regex_pattern are required for the search.")
         return
 
-    compiled_regex = re.compile(args.regex_pattern)
+    flags = 0 if args.case_sensitive else re.IGNORECASE
+    compiled_regex = re.compile(args.regex_pattern, flags)
     matches_found = False
     
-    pdf_files = get_pdf_files(args.folder_path, args.include, args.ignore)
+    pdf_files = get_pdf_files(args.folder_path, args.include, args.ignore, args.case_sensitive)
     total_files = len(pdf_files)
     
     print("Arguments used for the search:")
