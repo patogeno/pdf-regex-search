@@ -1,7 +1,7 @@
 import re
 from PyPDF2 import PdfReader
 from file_utils import get_pdf_files
-from logger import create_log_file, append_to_log
+from logger import create_or_append_log_file, append_to_log
 import sys
 
 def update_progress(current, total):
@@ -29,18 +29,18 @@ def search_pdfs(args):
             print(f"{key}: {value}")
     print()
 
-    log_filename = create_log_file(args, pdf_files)
+    log_filename = create_or_append_log_file(args, pdf_files)
     print(f"Found {total_files} PDF files to search.")
-    print(f"Log file created: {log_filename}")
+    print(f"Log file: {log_filename}")
     
     user_input = input("Do you want to continue with the search? (y/n): ").strip().lower()
     if user_input != 'y':
         print("Search cancelled by user.")
-        append_to_log(log_filename, "\nSearch cancelled by user before processing files.\n")
+        append_to_log(log_filename, "Search cancelled by user before processing files.\n")
         return
     
     print("Starting search...")
-    append_to_log(log_filename, "\nStarting search...\n")
+    append_to_log(log_filename, "Starting search...\n")
     
     for i, full_path in enumerate(pdf_files, 1):
         try:
@@ -60,12 +60,12 @@ def search_pdfs(args):
                 print(result)
                 append_to_log(log_filename, result)
             elif args.verbose:
-                result = f"\nNo matches found in {full_path}\n\n"
+                result = f"No matches found in {full_path}\n"
                 print(result)
                 append_to_log(log_filename, result)
         except Exception as e:
             if args.verbose:
-                error_msg = f"\nError processing {full_path}: {str(e)}\n\n"
+                error_msg = f"Error processing {full_path}: {str(e)}\n"
                 print(error_msg)
                 append_to_log(log_filename, error_msg)
         
