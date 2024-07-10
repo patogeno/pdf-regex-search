@@ -18,7 +18,7 @@ PDF Regex Search is a command-line tool that allows you to search for regex patt
 
 2. Clone this repository or download the source code:
    ```
-   git clone https://github.com/yourusername/pdf-regex-search.git
+   git clone https://github.com/patogeno/pdf-regex-search.git
    cd pdf-regex-search
    ```
 
