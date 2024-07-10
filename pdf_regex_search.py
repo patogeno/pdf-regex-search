@@ -3,6 +3,7 @@ import re
 from PyPDF2 import PdfReader
 import argparse
 import sys
+import time
 
 def match_pattern(filename, patterns, mode):
     for pattern in patterns:
@@ -18,39 +19,56 @@ def filter_files(files, include_patterns, ignore_patterns, include_mode, ignore_
     files = [f for f in files if not match_pattern(f, ignore_patterns, ignore_mode)]
     return files
 
+def get_pdf_files(folder_path, include_patterns, ignore_patterns, include_mode, ignore_mode):
+    pdf_files = []
+    for root, _, files in os.walk(folder_path):
+        pdf_files.extend([os.path.join(root, f) for f in files if f.lower().endswith('.pdf')])
+    return filter_files(pdf_files, include_patterns, ignore_patterns, include_mode, ignore_mode)
+
+def update_progress(current, total):
+    percent = int(current / total * 100)
+    bar_length = 50
+    filled_length = int(bar_length * current // total)
+    bar = '█' * filled_length + '-' * (bar_length - filled_length)
+    sys.stdout.write(f'\rProgress: |{bar}| {percent}% Complete')
+    sys.stdout.flush()
+
 def search_pdfs(folder_path, regex_pattern, include_patterns, ignore_patterns, include_mode, ignore_mode, verbose):
     compiled_regex = re.compile(regex_pattern)
     matches_found = False
-
-    for root, _, files in os.walk(folder_path):
-        pdf_files = [f for f in files if f.lower().endswith('.pdf')]
-        filtered_files = filter_files(pdf_files, include_patterns, ignore_patterns, include_mode, ignore_mode)
-        
-        for file in filtered_files:
-            full_path = os.path.join(root, file)
+    
+    pdf_files = get_pdf_files(folder_path, include_patterns, ignore_patterns, include_mode, ignore_mode)
+    total_files = len(pdf_files)
+    
+    print(f"Found {total_files} PDF files to search.")
+    print("Starting search...")
+    
+    for i, full_path in enumerate(pdf_files, 1):
+        try:
+            reader = PdfReader(full_path)
+            file_matches = []
+            for page_num, page in enumerate(reader.pages, 1):
+                text = page.extract_text()
+                for match in compiled_regex.finditer(text):
+                    file_matches.append(f"Page {page_num}, Position {match.start()}")
             
-            try:
-                reader = PdfReader(full_path)
-                file_matches = []
-                for page_num, page in enumerate(reader.pages, 1):
-                    text = page.extract_text()
-                    for match in compiled_regex.finditer(text):
-                        file_matches.append(f"Page {page_num}, Position {match.start()}")
-                
-                if file_matches:
-                    matches_found = True
-                    print(f"{full_path}:")
-                    for i, match in enumerate(file_matches, 1):
-                        print(f"{i}. {match}")
-                    print()  # Empty line for readability
-                elif verbose:
-                    print(f"No matches found in {full_path}")
-                    print()  # Empty line for readability
-            except Exception as e:
-                if verbose:
-                    print(f"Error processing {full_path}: {str(e)}")
-                    print()  # Empty line for readability
-
+            if file_matches:
+                matches_found = True
+                print(f"\n{full_path}:")
+                for j, match in enumerate(file_matches, 1):
+                    print(f"{j}. {match}")
+                print()  # Empty line for readability
+            elif verbose:
+                print(f"\nNo matches found in {full_path}")
+                print()  # Empty line for readability
+        except Exception as e:
+            if verbose:
+                print(f"\nError processing {full_path}: {str(e)}")
+                print()  # Empty line for readability
+        
+        update_progress(i, total_files)
+    
+    print()  # Move to a new line after the progress bar
     if not matches_found and verbose:
         print("No matches found in any files.")
 
