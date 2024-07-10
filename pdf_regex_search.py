@@ -4,6 +4,7 @@ from PyPDF2 import PdfReader
 import argparse
 import sys
 import time
+from datetime import datetime
 
 def match_pattern(filename, patterns, mode):
     for pattern in patterns:
@@ -33,6 +34,15 @@ def update_progress(current, total):
     sys.stdout.write(f'\rProgress: |{bar}| {percent}% Complete')
     sys.stdout.flush()
 
+def create_log_file(pdf_files):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"pdf_search_log_{timestamp}.txt"
+    with open(log_filename, 'w') as log_file:
+        log_file.write("PDF files to be searched:\n")
+        for file in pdf_files:
+            log_file.write(f"{file}\n")
+    return log_filename
+
 def search_pdfs(folder_path, regex_pattern, include_patterns, ignore_patterns, include_mode, ignore_mode, verbose):
     compiled_regex = re.compile(regex_pattern)
     matches_found = False
@@ -40,7 +50,15 @@ def search_pdfs(folder_path, regex_pattern, include_patterns, ignore_patterns, i
     pdf_files = get_pdf_files(folder_path, include_patterns, ignore_patterns, include_mode, ignore_mode)
     total_files = len(pdf_files)
     
+    log_filename = create_log_file(pdf_files)
     print(f"Found {total_files} PDF files to search.")
+    print(f"Log file created: {log_filename}")
+    
+    user_input = input("Do you want to continue with the search? (y/n): ").strip().lower()
+    if user_input != 'y':
+        print("Search cancelled by user.")
+        return
+    
     print("Starting search...")
     
     for i, full_path in enumerate(pdf_files, 1):
