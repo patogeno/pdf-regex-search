@@ -1,0 +1,23 @@
+# Ignore the configuration file
+pdf_search_config.json
+
+# Ignore all log files
+pdf_search_log_*.txt
+
+# Python-related files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE-specific files (uncomment if needed)
+# .vscode/
+# .idea/
+
+# Operating system-related files
+.DS_Store
+Thumbs.db
