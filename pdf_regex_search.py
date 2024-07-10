@@ -81,7 +81,7 @@ def update_progress(current, total):
     sys.stdout.write(f'\rProgress: |{bar}| {percent}% Complete')
     sys.stdout.flush()
 
-def create_log_file(pdf_files, args):
+def create_log_file(args, pdf_files):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_filename = f"pdf_search_log_{timestamp}.txt"
     with open(log_filename, 'w') as log_file:
@@ -89,10 +89,15 @@ def create_log_file(pdf_files, args):
         for key, value in vars(args).items():
             if value is not None and value != []:
                 log_file.write(f"{key}: {value}\n")
-        log_file.write("\nPDF files to be searched:\n")
+        log_file.write(f"\nFound {len(pdf_files)} PDF files to search:\n")
         for file in pdf_files:
             log_file.write(f"{file}\n")
+        log_file.write("\nSearch Results:\n")
     return log_filename
+
+def append_to_log(log_filename, content):
+    with open(log_filename, 'a') as log_file:
+        log_file.write(content)
 
 def search_pdfs(args):
     if not args.folder_path or not args.regex_pattern:
@@ -111,16 +116,18 @@ def search_pdfs(args):
             print(f"{key}: {value}")
     print()
 
-    log_filename = create_log_file(pdf_files, args)
+    log_filename = create_log_file(args, pdf_files)
     print(f"Found {total_files} PDF files to search.")
     print(f"Log file created: {log_filename}")
     
     user_input = input("Do you want to continue with the search? (y/n): ").strip().lower()
     if user_input != 'y':
         print("Search cancelled by user.")
+        append_to_log(log_filename, "\nSearch cancelled by user before processing files.\n")
         return
     
     print("Starting search...")
+    append_to_log(log_filename, "\nStarting search...\n")
     
     for i, full_path in enumerate(pdf_files, 1):
         try:
@@ -133,23 +140,29 @@ def search_pdfs(args):
             
             if file_matches:
                 matches_found = True
-                print(f"\n{full_path}:")
+                result = f"\n{full_path}:\n"
                 for j, match in enumerate(file_matches, 1):
-                    print(f"{j}. {match}")
-                print()  # Empty line for readability
+                    result += f"{j}. {match}\n"
+                result += "\n"
+                print(result)
+                append_to_log(log_filename, result)
             elif args.verbose:
-                print(f"\nNo matches found in {full_path}")
-                print()  # Empty line for readability
+                result = f"\nNo matches found in {full_path}\n\n"
+                print(result)
+                append_to_log(log_filename, result)
         except Exception as e:
             if args.verbose:
-                print(f"\nError processing {full_path}: {str(e)}")
-                print()  # Empty line for readability
+                error_msg = f"\nError processing {full_path}: {str(e)}\n\n"
+                print(error_msg)
+                append_to_log(log_filename, error_msg)
         
         update_progress(i, total_files)
     
     print()  # Move to a new line after the progress bar
-    if not matches_found and args.verbose:
-        print("No matches found in any files.")
+    if not matches_found:
+        no_matches_msg = "No matches found in any files.\n"
+        print(no_matches_msg)
+        append_to_log(log_filename, no_matches_msg)
 
 def main():
     parser = argparse.ArgumentParser(
