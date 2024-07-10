@@ -2,6 +2,7 @@ import os
 import re
 from PyPDF2 import PdfReader
 import argparse
+import sys
 
 def search_pdfs(folder_path, regex_pattern, ignore_patterns):
     compiled_regex = re.compile(regex_pattern)
@@ -51,6 +52,11 @@ Examples:
     parser.add_argument("regex_pattern", help="Regex pattern to search for")
     parser.add_argument("--ignore", nargs="*", default=[], help="Patterns to ignore in filenames")
     
+    # If no arguments are provided, print help and exit
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     args = parser.parse_args()
     
     search_pdfs(args.folder_path, args.regex_pattern, args.ignore)
