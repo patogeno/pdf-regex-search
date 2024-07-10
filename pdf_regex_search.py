@@ -6,7 +6,8 @@ import sys
 import time
 from datetime import datetime
 
-def match_pattern(filename, patterns, mode):
+def match_pattern(filepath, patterns, mode):
+    filename = os.path.basename(filepath)
     for pattern in patterns:
         if mode == "beginswith" and filename.startswith(pattern):
             return True
